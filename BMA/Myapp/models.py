@@ -121,6 +121,29 @@ class ProductDescription(models.Model):
 
     def __str__(self):
         return f"Product ID: {self.product_id}, Description: {self.description[:50]}" 
+
+class EInvoiceDetails(models.Model):
+    sale_id = models.CharField(primary_key=True, max_length=24, default=generate_add_gst_id, editable=False)
+    ack_no = models.CharField(max_length=255, blank=True, null=True) 
+    ack_date = models.DateField(blank=True, null=True) 
+    irn = models.CharField(max_length=255, blank=True, null=True)  
+    bill_to_place = models.CharField(max_length=255, blank=True, null=True) 
+    ship_to_place = models.CharField(max_length=255, blank=True, null=True) 
+
+class EWayBill(models.Model):
+    sale_id = models.CharField(primary_key=True, max_length=24, default=generate_add_gst_id, editable=False)
+    eway_bill_no = models.CharField(max_length=100)
+    date = models.DateField(null=True, blank=True)
+    dispatch_from = models.CharField(max_length=255, null=True, blank=True)
+    ship_to = models.CharField(max_length=255, null=True, blank=True)
+    transporter_name = models.CharField(max_length=255, null=True, blank=True)
+    transport_id = models.CharField(max_length=255, null=True, blank=True)
+    mode = models.CharField(max_length=50, null=True, blank=True)
+    doc_or_airway_no = models.CharField(max_length=100, null=True, blank=True)
+    vehicle_number = models.CharField(max_length=50, null=True, blank=True)
+    vehicle_date = models.DateField(null=True, blank=True)
+    vehicle_type = models.CharField(max_length=50, null=True, blank=True)
+
 class GSTR1 (models.Model):
     GSTR1_id = models.CharField(primary_key=True, max_length=24, default=generate_add_gst_id, editable=False)
 # 1:

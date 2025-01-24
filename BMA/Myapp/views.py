@@ -10,23 +10,18 @@ from datetime import datetime
 import json
 import logging
 
-# Configure logging
 logger = logging.getLogger(__name__)
-
 @csrf_exempt
 def addGst(request):
     return async_to_sync(async_add_gst)(request)
-
 async def async_add_gst(request):
     try:
         if request.method != 'POST':
             return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
-
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
-
         required_fields = [
             'state', 'register_type', 'assessee_of_authority_tertiary',
             'gst_in_un', 'periodicity_of_gstr1', 'gst_user_name',
@@ -38,7 +33,6 @@ async def async_add_gst(request):
         for field in required_fields:
             if field not in data or not data[field]:
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
-
         gst_record = await sync_to_async(AddGst.objects.create)(
             state=data['state'],
             register_type=data['register_type'],
@@ -54,7 +48,6 @@ async def async_add_gst(request):
             applicable_for_interest=data['applicable_for_interest'],
             another_GST_company=data['another_GST_company']
         )
-
         return JsonResponse({
             'message': 'GST record added successfully',
             'AddGst_Id': gst_record.AddGst_Id,
@@ -73,7 +66,6 @@ async def async_Gst_Get(request):
             gst_record = await sync_to_async(AddGst.objects.get)(AddGst_Id=object_id)
         except AddGst.DoesNotExist:
             return JsonResponse({'error': 'GST details not found'}, status=404)
-
         Gstdata = {
             'id': gst_record.AddGst_Id,
             'state': gst_record.state,
@@ -165,19 +157,15 @@ async def async_delete_gst(request):
 @csrf_exempt
 def addStockGroup(request):
     return async_to_sync(async_addStockGroup)(request)
-
 async def async_addStockGroup(request):
     try:
         if request.method != 'POST':
             return JsonResponse({'error': 'Invalid request format'}, status=405)
-
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
-
         required_fields = ['name', 'under', 'quantities_added', 'gst_details']
-
         for field in required_fields:
             if field not in data or not data[field]:
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
@@ -190,24 +178,20 @@ async def async_addStockGroup(request):
         )
         return JsonResponse({'message': 'Stock Group added successfully', 'StockGroup_Id': str(stock_group.StockGroup_Id), 
                              'Stock_Group_Name':stock_group.name}, status=200)
-
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 def getStockGroup(request):
     return async_to_sync(async_StockGroup_Get)(request)
-
 async def async_StockGroup_Get(request):
     try:
         object_id = request.GET.get('object_id')
         if not object_id:
             return JsonResponse({'error': 'object_id query parameter is required'}, status=400)
-
         try:
             stock_group = await sync_to_async(StockGroup.objects.get)(StockGroup_Id=object_id)
         except StockGroup.DoesNotExist:
             return JsonResponse({'error': 'Stock group not found'}, status=404)
-
         stock_group_data = {
             'id': str(stock_group.StockGroup_Id),
             'name': stock_group.name,
@@ -222,26 +206,21 @@ async def async_StockGroup_Get(request):
 @csrf_exempt
 def update_stock_group(request):
     return async_to_sync(async_update_stock_group)(request)
-
 async def async_update_stock_group(request):
     try:
         if request.method != "PUT":
             return JsonResponse({'error': 'Invalid request method. Use PUT for updates.'}, status=405)
-        
         object_id = request.GET.get('object_id')
         if not object_id:
             return JsonResponse({'error': 'object_id query parameter is required'}, status=400)
-        
         try:
             object_id = str(ObjectId(object_id))  
         except Exception:
             return JsonResponse({'error': 'Invalid object_id format'}, status=400)
-        
         try:
             stock_group = await sync_to_async(StockGroup.objects.get)(StockGroup_Id=object_id)
         except StockGroup.DoesNotExist:
             return JsonResponse({'error': 'Stock group not found for the provided object_id'}, status=404)
-        
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
@@ -249,77 +228,63 @@ async def async_update_stock_group(request):
         
         updatable_fields = ['name', 'under', 'quantities_added', 'gst_details']
         updated_fields = {}
-        
         for field in updatable_fields:
             if field in data:
                 setattr(stock_group, field, data[field])
                 updated_fields[field] = data[field]
         
         await sync_to_async(stock_group.save)()
-        
         return JsonResponse({
             'success': 'Stock group updated successfully',
             'updated_fields': updated_fields
         }, status=200)
-    
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 @csrf_exempt
 def delete_stock_group(request):
     return async_to_sync(async_delete_stock_group)(request)
-
 async def async_delete_stock_group(request):
     try:
         if request.method != "DELETE":
             return JsonResponse({'error': 'Invalid request method. Use DELETE for deletions.'}, status=405)
-        
         object_id = request.GET.get('object_id')
         if not object_id:
             return JsonResponse({'error': 'object_id query parameter is required'}, status=400)
-        
         try:
             object_id = str(ObjectId(object_id)) 
         except Exception:
             return JsonResponse({'error': 'Invalid object_id format'}, status=400)
-        
         try:
             stock_group = await sync_to_async(StockGroup.objects.get)(StockGroup_Id=object_id)
         except StockGroup.DoesNotExist:
             return JsonResponse({'error': 'Stock group not found for the provided object_id'}, status=404)
-        
         try:
             await sync_to_async(stock_group.delete)()
             return JsonResponse({'success': 'Stock group deleted successfully'}, status=200)
         except Exception as e:
             return JsonResponse({'error': f'Error deleting stock group: {str(e)}'}, status=500)
-    
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 @csrf_exempt
 def add_stock_item(request):
     return async_to_sync(async_add_stock_item)(request)
-
 async def async_add_stock_item(request):
     try:
         if request.method != 'POST':
             return JsonResponse({'error': 'Invalid request format'}, status=405)
-
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
-
         required_fields = [
             'name', 'StockGroup_Id', 'under', 'units', 'gst_applicability', 'set_alter_gst_details',
             'type_of_supply', 'quantity', 'rate_per', 'value'
         ]
-
         for field in required_fields:
             if data.get(field) is None:  
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
-
         stock_item = await sync_to_async(StockItem.objects.create)(
             name=data['name'],
             StockGroup_Id=data['StockGroup_Id'],
@@ -334,9 +299,7 @@ async def async_add_stock_item(request):
             rate_per=data['rate_per'],
             value=data['value']
         )
-
         return JsonResponse({'message': 'Stock item added successfully'}, status=200)
-
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
@@ -344,7 +307,6 @@ def convert_decimal(value):
     if isinstance(value, Decimal128):
         return float(value.to_decimal())  
     return value
-
 def StockItemget(request):
     return async_to_sync(async_getStockItemById)(request)
 
@@ -1071,13 +1033,10 @@ async def async_add_other_details(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
-        # Required fields for creating a record
         required_fields = ['product_id', 'sale_discount_percent', 'low_level_limit', 'select_general', 'serial_no']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
-
-        # Create the new record
         try:
             other_details = await sync_to_async(OtherDetails.objects.create)(
                 product_id=data['product_id'],
@@ -1089,12 +1048,10 @@ async def async_add_other_details(request):
         except Exception as e:
             return JsonResponse({'error': f'Failed to create record: {str(e)}'}, status=500)
 
-        # Success response
         return JsonResponse({
             'message': 'Record added successfully',
-            'id': other_details.OtherDetails_id  # Assuming the model has a default `id` field.
+            'id': other_details.OtherDetails_id 
         }, status=201)
-
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
     
@@ -1106,12 +1063,10 @@ async def async_get_other_details_by_id(request):
     try:
         if request.method != "GET":
             return JsonResponse({'error': 'Only GET requests are allowed'}, status=405)
-
         other_details_id = request.GET.get('object_id')
         product_id = request.GET.get('product_id')
         if not other_details_id or not product_id:
             return JsonResponse({'error': 'Both id and product_id query parameters are required'}, status=400)
-
         if not ObjectId.is_valid(product_id) and not ObjectId.is_valid(other_details_id):
             return JsonResponse({'error': 'Invalid ObjectId format for product_id'}, status=400)
 
@@ -1156,7 +1111,6 @@ async def async_update_other_details(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON format in request body'}, status=400)
 
-        # Define updatable fields
         updatable_fields = [
             'sale_discount_percent', 'low_level_limit', 'select_general', 'serial_no'
         ]
@@ -1164,7 +1118,6 @@ async def async_update_other_details(request):
 
         for field in updatable_fields:
             if field in data:
-                # Ensure that sale_discount_percent is valid as a decimal
                 if field == 'sale_discount_percent':
                     try:
                         setattr(other_details, field, Decimal(data[field]))
@@ -1174,9 +1127,7 @@ async def async_update_other_details(request):
                     setattr(other_details, field, data[field])
                 updated_fields[field] = data[field]
 
-        # Save the updated object
         await sync_to_async(other_details.save)()
-
         return JsonResponse({
             'success': 'OtherDetails object updated successfully',
             'updated_fields': updated_fields
@@ -1194,25 +1145,20 @@ async def async_delete_other_details(request):
         if request.method != "DELETE":
             return JsonResponse({'error': 'Invalid request method. Use DELETE for deletions.'}, status=405)
         
-        # Retrieve the 'product_id' and 'other_details_id' from query parameters
         product_id = request.GET.get('product_id')
         other_details_id = request.GET.get('object_id')
 
-        # Check if both IDs are provided
         if not product_id or not other_details_id:
             return JsonResponse({'error': 'Both product_id and other_details_id query parameters are required'}, status=400)
 
-        # Validate the ObjectId formats
         if not ObjectId.is_valid(product_id) or not ObjectId.is_valid(other_details_id):
             return JsonResponse({'error': 'Invalid product_id or other_details_id format'}, status=400)
 
-        # Retrieve the object to delete using both product_id and the correct field name for primary key (OtherDetails_id)
         try:
             other_details = await sync_to_async(OtherDetails.objects.get)(product_id=product_id, OtherDetails_id=other_details_id)
         except OtherDetails.DoesNotExist:
             return JsonResponse({'error': 'OtherDetails entry not found for the provided product_id and other_details_id'}, status=404)
 
-        # Delete the object
         try:
             await sync_to_async(other_details.delete)()
             return JsonResponse({'success': 'OtherDetails entry deleted successfully'}, status=200)
@@ -1223,7 +1169,6 @@ async def async_delete_other_details(request):
 @csrf_exempt
 def add_product_settings(request):
     return async_to_sync(async_add_product_settings)(request)
-
 async def async_add_product_settings(request):
     try:
         if request.method != 'POST':
@@ -1234,13 +1179,11 @@ async def async_add_product_settings(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
-        # Validate required fields in the incoming request data
         required_fields = ['product_id', 'print_description', 'one_click_sale', 'enable_tracking', 'print_serial_no', 'not_for_sale']
         for field in required_fields:
             if field not in data:
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
 
-        # Creating new ProductSettings object
         try:
             new_product_settings = await sync_to_async(ProductSettings.objects.create)(
                 product_id=data['product_id'],
@@ -1266,23 +1209,19 @@ async def async_get_product_settings_by_id(request):
         if request.method != "GET":
             return JsonResponse({'error': 'Only GET requests are allowed'}, status=405)
 
-        # Retrieve the 'object_id' from query parameters
         object_id = request.GET.get('object_id')
         product_id = request.GET.get('product_id')
         if not object_id:
             return JsonResponse({'error': 'object_id query parameter is required'}, status=400)
 
-        # Validate the ObjectId format
         if not ObjectId.is_valid(object_id) and not ObjectId.is_valid(product_id):
             return JsonResponse({'error': 'Invalid ObjectId format'}, status=400)
 
-        # Try to fetch the ProductSettings object by its setting_id (or the field you want to use)
         try:
             product_settings = await sync_to_async(ProductSettings.objects.get)(setting_id=object_id,product_id=product_id)
         except ProductSettings.DoesNotExist:
             return JsonResponse({'error': 'ProductSettings not found'}, status=404)
 
-        # Prepare the response data
         product_settings_data = {
             'setting_id': str(product_settings.setting_id),
             'product_id': product_settings.product_id,
@@ -1292,7 +1231,6 @@ async def async_get_product_settings_by_id(request):
             'print_serial_no': product_settings.print_serial_no,
             'not_for_sale': product_settings.not_for_sale
         }
-
         return JsonResponse(product_settings_data, status=200)
 
     except Exception as e:
@@ -1305,7 +1243,6 @@ async def async_update_product_settings(request):
         if request.method != "PUT":
             return JsonResponse({'error': 'Invalid request method. Use PUT for updates.'}, status=405)
         
-        # Retrieve the 'setting_id' from the query parameters
         setting_id = request.GET.get('object_id')
         product_id = request.GET.get('product_id')
         if not setting_id and not product_id:
@@ -1314,32 +1251,27 @@ async def async_update_product_settings(request):
         if not ObjectId.is_valid(setting_id) and not ObjectId.is_valid(product_id):
             return JsonResponse({'error': 'Invalid setting_id format'}, status=400)
 
-        # Retrieve the object to update using the 'setting_id'
         try:
             product_settings = await sync_to_async(ProductSettings.objects.get)(setting_id=setting_id,product_id=product_id)
         except ProductSettings.DoesNotExist:
             return JsonResponse({'error': 'ProductSettings object not found for the provided setting_id'}, status=404)
 
-        # Parse the data to be updated
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON format in request body'}, status=400)
 
-        # List of fields that can be updated
         updatable_fields = [
             'product_id', 'print_description', 'one_click_sale', 
             'enable_tracking', 'print_serial_no', 'not_for_sale'
         ]
         updated_fields = {}
 
-        # Update the fields that are provided in the request body
         for field in updatable_fields:
             if field in data:
                 setattr(product_settings, field, data[field])
                 updated_fields[field] = data[field]
 
-        # Save the updated object
         await sync_to_async(product_settings.save)()
 
         return JsonResponse({
@@ -1358,23 +1290,19 @@ async def async_delete_product_settings(request):
         if request.method != "DELETE":
             return JsonResponse({'error': 'Invalid request method. Use DELETE for deletions.'}, status=405)
         
-        # Retrieve 'object_id' from query parameters
         object_id = request.GET.get('object_id')
         product_id = request.GET.get('product_id')
         if not object_id and not product_id:
             return JsonResponse({'error': 'object_id and product_id query parameter is required'}, status=400)
         
-        # Validate ObjectId format
         if not ObjectId.is_valid(object_id) and not ObjectId.is_valid(product_id):
             return JsonResponse({'error': 'Invalid object_id format'}, status=400)
         
-        # Retrieve the ProductSettings object using the product_id (ObjectId)
         try:
             product_settings = await sync_to_async(ProductSettings.objects.get)(product_id=product_id,setting_id=object_id)
         except ProductSettings.DoesNotExist:
             return JsonResponse({'error': 'ProductSettings not found for the provided object_id'}, status=404)
         
-        # Delete the object
         try:
             await sync_to_async(product_settings.delete)()
             return JsonResponse({'success': 'ProductSettings deleted successfully'}, status=200)
@@ -1388,23 +1316,19 @@ def add_product_description(request):
     return async_to_sync(async_add_product_description)(request)
 async def async_add_product_description(request):
     try:
-        # Check if the method is POST
         if request.method != 'POST':
             return JsonResponse({'error': 'Invalid request method. Use POST to add new records.'}, status=405)
 
-        # Parse the request body
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
-        # Required fields for creating a record
         required_fields = ['product_id', 'description']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
 
-        # Create the new ProductDescription record
         try:
             product_description = await sync_to_async(ProductDescription.objects.create)(
                 product_id=data['product_id'],
@@ -1413,7 +1337,6 @@ async def async_add_product_description(request):
         except Exception as e:
             return JsonResponse({'error': f'Failed to create record: {str(e)}'}, status=500)
 
-        # Success response
         return JsonResponse({
             'message': 'ProductDescription added successfully',
             'product_id': product_description.product_id  # Returning product_id as a success reference
@@ -1430,7 +1353,6 @@ async def async_get_product_by_id(request):
         if request.method != "GET":
             return JsonResponse({'error': 'Only GET requests are allowed'}, status=405)
         
-        # Get product_id from query parameters
         product_id = request.GET.get('product_id')
         object_id = request.GET.get('object_id')
         if not product_id and not object_id:
@@ -1440,8 +1362,6 @@ async def async_get_product_by_id(request):
             product = await sync_to_async(ProductDescription.objects.get)(product_id=product_id,Description_id=object_id)
         except ProductDescription.DoesNotExist:
             return JsonResponse({'error': 'Product not found for the provided product_id'}, status=404)
-
-        # Return the product data
         product_data = {
             'product_id': product.product_id,
             'description': product.description,
@@ -1451,17 +1371,14 @@ async def async_get_product_by_id(request):
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
-
 @csrf_exempt
 def update_product_description(request):
     return async_to_sync(async_update_product_description)(request)
 async def async_update_product_description(request):
     try:
-        # Check if the method is PUT
         if request.method != "PUT":
             return JsonResponse({'error': 'Invalid request method. Use PUT for updates.'}, status=405)
         
-        # Retrieve the 'object_id' and 'product_id' from query parameters
         product_id = request.GET.get('product_id')
         object_id = request.GET.get('object_id')
         if not product_id and not object_id:
@@ -1471,25 +1388,20 @@ async def async_update_product_description(request):
             product_description = await sync_to_async(ProductDescription.objects.get)(product_id=product_id,Description_id=object_id)
         except ProductDescription.DoesNotExist:
             return JsonResponse({'error': 'Product not found for the provided product_id'}, status=404)
-
-        # Parse the data from the request body
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON format in request body'}, status=400)
 
-        # List of fields that can be updated
         updatable_fields = ['description']
         updated_fields = {}
 
-        # Update the fields that are provided in the request body
         for field in updatable_fields:
             if field in data:
                 setattr(product_description, field, data[field])
                 updated_fields[field] = data[field]
 
         await sync_to_async(product_description.save)()
-
         return JsonResponse({
             'success': 'ProductDescription object updated successfully',
             'updated_fields': updated_fields
@@ -1505,7 +1417,6 @@ async def async_delete_product_description_by_id(request):
     try:
         if request.method != "DELETE":
             return JsonResponse({'error': 'Invalid request method. Use DELETE for deletions.'}, status=405)
-
         product_id = request.GET.get('product_id')
         object_id = request.GET.get('object_id')
         if not product_id and not object_id:
@@ -1522,4 +1433,270 @@ async def async_delete_product_description_by_id(request):
             return JsonResponse({'error': f'Error deleting ProductDescription object: {str(e)}'}, status=500)
     except Exception as e:
         return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+@csrf_exempt
+def add_e_invoice_details(request):
+    return async_to_sync(async_add_e_invoice_details)(request)
 
+async def async_add_e_invoice_details(request):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Invalid request method. Only POST is allowed.'}, status=405)
+
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
+        required_fields = ['ack_no', 'ack_date', 'irn', 'bill_to_place', 'ship_to_place']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
+
+        e_invoice = await sync_to_async(EInvoiceDetails.objects.create)(
+            ack_no=data['ack_no'],
+            ack_date=data['ack_date'], 
+            irn=data['irn'],
+            bill_to_place=data['bill_to_place'],
+            ship_to_place=data['ship_to_place']
+        )
+
+        return JsonResponse(
+            {
+                'message': 'E-Invoice details added successfully',
+                'sale_id': str(e_invoice.sale_id),
+                'ack_no': e_invoice.ack_no,
+                'irn': e_invoice.irn
+            },
+            status=201
+        )
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+@csrf_exempt
+def get_e_invoice(request):
+    return async_to_sync(async_get_e_invoice_by_id)(request)
+
+async def async_get_e_invoice_by_id(request):
+    try:
+        if request.method != "GET":
+            return JsonResponse({'error': 'Only GET requests are allowed'}, status=405)
+
+        sale_id = request.GET.get('object_id')
+        if not sale_id:
+            return JsonResponse({'error': 'sale_id query parameter is required'}, status=400)
+
+        if not ObjectId.is_valid(sale_id):
+            return JsonResponse({'error': 'Invalid ObjectId format'}, status=400)
+
+        try:
+            e_invoice = await sync_to_async(EInvoiceDetails.objects.get)(sale_id=sale_id)
+        except EInvoiceDetails.DoesNotExist:
+            return JsonResponse({'error': 'E-Invoice not found'}, status=404)
+
+        e_invoice_data = {
+            'sale_id': str(e_invoice.sale_id),
+            'ack_no': e_invoice.ack_no,
+            'ack_date': str(e_invoice.ack_date) if e_invoice.ack_date else None,
+            'irn': e_invoice.irn,
+            'bill_to_place': e_invoice.bill_to_place,
+            'ship_to_place': e_invoice.ship_to_place,
+        }
+        return JsonResponse(e_invoice_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+@csrf_exempt
+def update_e_invoice(request):
+    return async_to_sync(async_update_e_invoice_details)(request)
+
+async def async_update_e_invoice_details(request):
+    try:
+        if request.method != "PUT":
+            return JsonResponse({'error': 'Invalid request method. Use PUT for updates.'}, status=405)
+
+        sale_id = request.GET.get('object_id')
+        if not sale_id:
+            return JsonResponse({'error': 'sale_id query parameter is required'}, status=400)
+
+        try:
+            sale_id = ObjectId(sale_id)
+        except Exception:
+            return JsonResponse({'error': 'Invalid sale_id format. Must be a valid ObjectId.'}, status=400)
+
+        try:
+            e_invoice = await sync_to_async(EInvoiceDetails.objects.get)(sale_id=sale_id)
+        except EInvoiceDetails.DoesNotExist:
+            return JsonResponse({'error': 'E-Invoice not found for the provided sale_id'}, status=404)
+
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format in request body'}, status=400)
+
+        updatable_fields = ['ack_no', 'ack_date', 'irn', 'bill_to_place', 'ship_to_place']
+        updated_fields = {}
+
+        for field in updatable_fields:
+            if field in data:
+                setattr(e_invoice, field, data[field])
+                updated_fields[field] = data[field]
+
+        await sync_to_async(e_invoice.save)()
+
+        return JsonResponse({
+            'message': 'E-Invoice updated successfully',
+            'updated_fields': updated_fields
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+@csrf_exempt
+def delete_e_invoice(request):
+    return async_to_sync(async_delete_e_invoice_details)(request)
+async def async_delete_e_invoice_details(request):
+    try:
+        if request.method != "DELETE":
+            return JsonResponse({'error': 'Invalid request method. Use DELETE for deletions.'}, status=405)
+
+        object_id = request.GET.get('object_id')
+        if not object_id:
+            return JsonResponse({'error': 'The object_id query parameter is required.'}, status=400)
+
+        try:
+            object_id = ObjectId(object_id)  
+        except Exception:
+            return JsonResponse({'error': 'Invalid object_id format. Must be a valid ObjectId.'}, status=400)
+
+        try:
+            e_invoice = await sync_to_async(EInvoiceDetails.objects.get)(sale_id=object_id)
+        except EInvoiceDetails.DoesNotExist:
+            return JsonResponse({'error': 'E-Invoice details not found for the provided object_id.'}, status=404)
+
+        try:
+            await sync_to_async(e_invoice.delete)()
+            return JsonResponse({'success': 'E-Invoice details deleted successfully.'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Error deleting E-Invoice details: {str(e)}'}, status=500)
+
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+@csrf_exempt
+def add_e_way_bill(request):
+    return async_to_sync(async_add_eway_bill)(request)
+async def async_add_eway_bill(request):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error':'Invalid request Methods'})
+        try:
+            data= json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error':f'Invalid Json Payload'})
+        request_field=['eway_bill_no','date','dispatch_from','ship_to','transporter_name',
+                       'transport_id','mode','doc_or_airway_no','vehicle_number','vehicle_date','vehicle_type']
+        for feilds in request_field:
+            if feilds  not in data or not data[feilds]:
+                return JsonResponse({'error':f'Missng requirement feilds'})
+        e_way_bill= await sync_to_async(EWayBill.objects.create)(
+            eway_bill_no=data['eway_bill_no'],
+            date=data['date'],
+            dispatch_from=data['dispatch_from'],
+            ship_to=data['ship_to'],
+            transporter_name=data['transporter_name'],
+            transport_id=data['transport_id'],
+            mode=data['mode'],
+            doc_or_airway_no=data['doc_or_airway_no'],
+            vehicle_number=data['vehicle_number'],
+            vehicle_date=data['vehicle_date'],
+            vehicle_type=data['vehicle_type'],
+        )
+        return JsonResponse({'message':'Successufully','sale_id':e_way_bill.sale_id},status=200)
+    except Exception as e:
+        return JsonResponse({'error':f'an unexpected error:{str(e)}'},status=500)
+@csrf_exempt
+def get_e_way_bill(request):
+    return async_to_sync(async_get_ewaybill)(request)
+async def async_get_ewaybill(request):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error':f'Invalid request Methods'},status=405)
+        sale_id=request.GET.get('object_id')
+        if  not sale_id:
+            return JsonResponse({'error':f'sale_id query parameter is required'}, status=400)
+        if not ObjectId.is_valid(sale_id):
+            return JsonResponse({'error':f'Invalid ObjectId format'},status=400)
+        try:
+            get_records= await sync_to_async(EWayBill.objects.get)(sale_id=sale_id)
+        except EWayBill.DoesNotExist:
+            return JsonResponse({'error':f'Data not found'},status=404)
+        get_record_details={
+            'sale_id':str(get_records.sale_id),
+            'eway_bill_no': get_records.eway_bill_no,
+            'date':get_records.date,
+            'dispatch_from':get_records.dispatch_from,
+            'ship_to':get_records.ship_to,
+            'transporter_name':get_records.transporter_name,
+            'transport_id':get_records.transport_id,
+            'mode':get_records.mode,
+            'doc_or_airway_no':get_records.doc_or_airway_no,
+            'vehicle_number':get_records.vehicle_number,
+            'vehicle_date':get_records.vehicle_date,
+            'vehicle_type':get_records.vehicle_type,
+        }
+        return JsonResponse(get_record_details,status=200)
+    except Exception as e:
+        return JsonResponse({'error':f'An unexpected error (str{e})'},status=500)
+@csrf_exempt
+def update_e_way_bill(request):
+    return async_to_sync(async_update_ewaybill)(request)
+async def async_update_ewaybill(request):
+    try:
+        if request.method != 'PUT':
+            return JsonResponse({'error':f'Invalid request format'},status=405)
+        sale_id= request.GET.get('object_id')
+        if not sale_id:
+            return JsonResponse({'error':f'Missing query method values'},status=405)
+        try:
+            sale_id= ObjectId(sale_id)
+        except Exception:
+            return JsonResponse({'error':f'Invalid sale_id format. Must be a valid ObjectId '})
+        try:
+            update_record= await sync_to_async(EWayBill.objects.get)(sale_id=sale_id)
+        except EWayBill.DoesNotExist:
+            return JsonResponse({'error':f'data not found'},status=404)
+        try: 
+            data= json.loads(request.body)
+        except json.JSONDecodeError:
+            return  JsonResponse({'error':f'Invalid payload format'},status=400)
+        request_field=['eway_bill_no','date','dispatch_from','ship_to','transporter_name',
+                       'transport_id','mode','doc_or_airway_no','vehicle_number','vehicle_date','vehicle_type']
+        update_feilds={}
+        for feilds in request_field:
+            if feilds in  data:
+                setattr(update_record, feilds,data[feilds])
+                update_feilds[feilds]=data[feilds]
+        await sync_to_async(update_record.save)()
+        return JsonResponse({'success':f'Update Successfully','update_dates':update_feilds},status=200)
+    except Exception as e:
+        return JsonResponse({'error':f'An unexpected error (str{e})'},status=500)
+@csrf_exempt
+def delete_e_way_bill(request):
+    return async_to_sync(async_delete_ewaybill)(request)
+async def async_delete_ewaybill(request):
+    try:
+        if request.method != 'DELETE':
+            return JsonResponse({'error':f'Invalid Request format'},status=405)
+        sale_id=request.GET.get('object_id')
+        if not sale_id:
+            return JsonResponse({'error':f'Missing query value'},status=400)
+        if not ObjectId.is_valid(sale_id):
+            return JsonResponse({'error':f'Missing object_id format'},status=400)
+        try:
+            ewaybill= await sync_to_async(EWayBill.objects.get)(sale_id=sale_id)
+        except EWayBill.DoesNotExist:
+            return JsonResponse({'error':f'Data not found'},status=404)
+        try:
+            await sync_to_async(ewaybill.delete)()
+            return JsonResponse({'success':f'Data delete succesfully'},status=200)
+        except Exception as e:
+            return JsonResponse({'error':f'Error deleting E Way bill (str{e})'},status=500)
+    except Exception as e:
+        return JsonResponse({'error':f'An unexpected error (str{e})'},status=500)
